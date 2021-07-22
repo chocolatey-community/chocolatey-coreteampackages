@@ -34,7 +34,11 @@ function global:au_GetLatest {
 
   $checksumAsset = $domain + ($download_page.Links | ? href -match "checksums\.txt$" | select -first 1 -expand href)
   $checksum_page = Invoke-WebRequest -Uri $checksumAsset -UseBasicParsing
-  $filename64 = -join('k9s_v', $version, '_Windows_x86_64.tar.gz')
+  if($VersionStyle -eq 0) {
+    $filename64 = 'k9s_Windows_x86_64.tar.gz'
+  } elseif ($VersionStyle -eq 1) {
+    $filename64 = -join('k9s_v', $version, '_Windows_x86_64.tar.gz')
+  }
   $checksum64 = [regex]::Match($checksum_page, "([a-f\d]+)\s*$([regex]::Escape($filename64))").Groups[1].Value
 
   return @{
@@ -47,4 +51,13 @@ function global:au_GetLatest {
   }
 }
 
-update -ChecksumFor none -Force:$Force
+$global:VersionStyle = $null
+
+try {
+  $global:VersionStyle = 0
+  update -ChecksumFor none -Force:$Force
+}
+catch {
+  $global:VersionStyle = 1
+  update -ChecksumFor none -Force:$Force
+}
